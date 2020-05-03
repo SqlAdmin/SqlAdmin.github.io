@@ -1,6 +1,6 @@
 ---
 title: Post Archive
-layout: post
+layout: default
 permalink: /posts/
 sitemap: false
 exclude: 'yes'
