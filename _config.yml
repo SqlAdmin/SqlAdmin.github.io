@@ -1,17 +1,11 @@
-site: Sidey
+site: "The Data Guy"
 url: #yoururl
-title: Sidey
-description: Simple and minimalistic jekyll blogging theme.
+title: "The Data Guy"
+description: Adventures of a DBA in Cloud, Data and DevOps
 twitter:
-  username: #yourusername
+  username: bhuvithedataguy
   card: summary
-  creator: #yourusername
-author:
-  twitter: #yourusername
-  name: #yourusername
-  avatar:
-  email: #youremail
-  url: #yoururl
+  creator: bhuvithedataguy
 permalink: pretty
 
 baseurl: ""
@@ -40,7 +34,8 @@ disqus:
 plugins:
   - jekyll-paginate
   - jekyll-seo-tag
-  - jekyll-sitemap  
+  - jekyll-sitemap 
+  - jekyll-feed
 
 collections:
   pages:
@@ -75,5 +70,4 @@ author:
   twitter: https://twitter.com/BhuviTheDataGuy 
   links:
     - title: LinkedIn
-      url: https://linkedin.com/in/rbhuvanesh
-      icon:  
+      url: https://linkedin.com/in/rbhuvanesh 
