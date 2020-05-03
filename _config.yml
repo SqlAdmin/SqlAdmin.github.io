@@ -16,7 +16,13 @@ permalink: pretty
 
 baseurl: ""
 
+markdown: kramdown
 highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter_opts:
+    default_lang: html
+    css_class   : 'syntax'
 
 exclude:
   - .jekyll-cache
