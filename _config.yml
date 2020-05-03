@@ -9,7 +9,8 @@ twitter:
 permalink: pretty
 
 baseurl: ""
-
+category_archive_path: "/categories/#"
+tag_archive_path: "/tags/#"
 markdown: kramdown
 highlighter: rouge
 kramdown:
