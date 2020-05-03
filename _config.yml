@@ -35,6 +35,8 @@ sass:
   sass_dir:          _sass
   style:            :compressed
 
+disqus:
+  shortname: bhuvithedataguy
 plugins:
   - jekyll-paginate
   - jekyll-seo-tag
