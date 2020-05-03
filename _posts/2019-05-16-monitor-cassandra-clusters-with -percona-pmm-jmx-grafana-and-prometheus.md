@@ -34,7 +34,7 @@ mv cassandra_exporter-2.2.1-all.jar  cassandra_exporter.jar{% endraw %} {% endhi
 ```
 ### Create config file
 
-{% highlight shell %}
+```sh
 vi config.yml
 host: localhost:7199
 ssl: False
@@ -63,7 +63,7 @@ maxScrapFrequencyInSec:
     - .*:snapshotssize:.*
     - .*:estimated.*
     - .*:totaldiskspaceused:.*
-{% endhighlight %}
+```
 
 * blacklist - These metrics are never been collected.
 * maxScrapFrequencyInSec - Metrics collection frequency.
@@ -72,13 +72,13 @@ maxScrapFrequencyInSec:
 ### Start the Exporter:
 
 I have executed this using nohup but you can create a service for this.
-{% highlight shell %}
+```sh
 nohup java -jar /opt/cassandra_exporter/cassandra_exporter.jar config.yml &
-{% endhighlight %}
+```
 ## Stage 2:
 
 ### Install and Configure PMM Server:
-{% highlight shell %}
+```sh
 docker pull percona/pmm-server:1
 
 docker create \
@@ -95,38 +95,36 @@ docker run -d \
    --name pmm-server \
    --restart always \
    percona/pmm-server:1
-{% endhighlight %}
+```
 
 > More customized installation: [https://www.percona.com/doc/percona-monitoring-and-management/deploy/server/docker.setting-up.html](https://github.com/criteo/cassandra_exporter/releases/download/2.2.1/cassandra_exporter-2.2.1-all.jar "https://github.com/criteo/cassandra_exporter/releases/download/2.2.1/cassandra_exporter-2.2.1-all.jar")
 
 ### Install PMM Client on all Cassandra Nodes:
 
 **DEB Package:**
-{% highlight shell %}
+```sh
 wget https://repo.percona.com/apt/percona-release_latest.generic_all.deb
 dpkg -i percona-release_latest.generic_all.deb
 apt-get update
 apt-get install pmm-client
-{% endhighlight %}
-
+```
 
 **RPM Package:**
-{% highlight shell %}
+```sh
 sudo yum install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
 yum install pmm-client
-{% endhighlight %}
+```
 
 ### **Add Cassandra Node to PMM Server:**
-{% highlight shell %}
+```sh
 pmm-admin config --server PMM-Server-IP
-{% endhighlight %}
-
+```
 **Enable Linux Metrics:**
 
 It contains common linux monitoring metrics. So 42000 port should be opened to the PMM server.
-{% highlight shell %}
+```sh
 pmm-admin add linux:metrics
-{% endhighlight %}
+```
 
 ## Stage 3: Add Cassandra to PMM
 
@@ -134,9 +132,9 @@ PMM is having a feature called External services, So the PMM will capture the me
 
 In `config.yml` file, we have added the listen port as 8080, so our external service will use this port to get the metrics. And this 8080 port should be opened to the PMM server.
 
-{% highlight shell %}
+```sh
 pmm-admin add external:service cassandra --service-port=8080
-{% endhighlight %}
+```
 
 Now, metrics are collecting by PMM, but we can't visualize this without the proper Dashboard. So the critro team has already build a dashboard and published it in Grafana repo. So we can import it from there.
 
