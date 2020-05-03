@@ -8,7 +8,7 @@ title: Categories
     
 <h1>Categories</h1>
   {% for tag in site.categories %}
-    <a href="#{{ tag[0] | slugify }}" code class="highligher-rouge"><nobr>#{{ tag[0] }}</nobr></code></a>
+    <a href="#{{ tag[0] | slugify }}" code class="highligher-rouge"><nobr>`#{{ tag[0] }}`</nobr></code></a>
     {% endfor %}
   
   <hr/>
