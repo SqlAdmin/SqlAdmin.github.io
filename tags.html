@@ -6,18 +6,10 @@ title: Tags
 <ul>
     
 <h2>Tags</h2>
-{% capture temptags %}
-  {% for tag in site.tags %}
-    {{ tag[1].size | plus: 1000 }}#{{ tag[0] }}#{{ tag[1].size }}
-  {% endfor %}
-{% endcapture %}
-{% assign sortedtemptags = temptags | split:' ' | sort | reverse %}
-{% for temptag in sortedtemptags %}
-  {% assign tagitems = temptag | split: '#' %}
-  {% capture tagname %}{{ tagitems[1] }}{% endcapture %}
+   {% for tag in site.tags %}
     <a href="#{{ tag[0] | slugify }}" class="post-tag">{{ tag[0] }}</a>
     {% endfor %}
-
+<hr>
     {% for tag in site.tags %}
     <h2 id="{{ tag[0] | slugify }}">{{ tag[0] }}</h2>
     <ul class="tags-expo-posts">
