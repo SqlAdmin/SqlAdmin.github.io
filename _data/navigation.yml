@@ -1,9 +1,13 @@
 links:
-- title: Writing
+- title: Home
   url: /
-- title: About
-  url: /about
+- title: Posts
+  url: /posts/
+- title: Categories
+  url: /categories/
+- title: Tags
+  url: /tags/
+- title: Medium Blog
+  url: https://medium.com/@bhuvithedataguy
 - title: Search
-  url: /search
-- title: Rss
-  url: /atom.xml
+  url: /search/
