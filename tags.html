@@ -15,10 +15,10 @@ title: Tags
     <ul class="tags-expo-posts">
       {% for post in tag[1] %}
         <a class="post-title" href="{{ site.baseurl }}{{ post.url }}">
-      <li>
+      <ul>
         {{ post.title }}
       <small class="post-date">{{ post.date | date_to_string }}</small>
-      </li>
+      </ul>
       </a>
       {% endfor %}
     </ul>
