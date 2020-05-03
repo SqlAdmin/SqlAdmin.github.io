@@ -1,0 +1,2 @@
+I"·<p>Debezium MySQL connector to take snapshot from Read replica and then point it to the Master node without GTID. We can resume the CDC with binlog information from slave status.</p>
+:ET

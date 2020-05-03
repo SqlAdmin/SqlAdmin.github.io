@@ -1,0 +1,113 @@
+I"`0<p>If you are managing the RedShift clusters then <strong>STL_QUERY</strong> and <strong>STL_QUERYTEXT</strong> tables are not new to you. STL_Query can’t hold the complete SQL query instead we can use STL_QueryText to read the complete query. But there is a challenge, we can’t read that table as it is. Since your queries are saved in multiple rows. So we need to combine all these rows into a single row with LISTAGG function which is well documented <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_STL_QUERYTEXT.html">here</a>.</p>
+
+<h2 id="what-is-the-real-challenge">What is the real challenge?</h2>
+
+<p>From the AWS documentation example, they are showing to reconstruct the SQL for a single query. But in a production system, you may have 50k+ queries where the LISTAGG function will through some errors related to its limitation. Let’s simulate this. I ran the below query on my production RedShift Cluster.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span>   <span class="n">Listagg</span><span class="p">(</span> 
+         <span class="k">CASE</span> 
+                  <span class="k">WHEN</span> <span class="n">Len</span><span class="p">(</span><span class="n">Rtrim</span><span class="p">(</span><span class="nb">text</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">THEN</span> <span class="nb">text</span> 
+                  <span class="k">ELSE</span> <span class="n">Rtrim</span><span class="p">(</span><span class="nb">text</span><span class="p">)</span> 
+         <span class="k">END</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span> <span class="n">within</span> <span class="k">GROUP</span> <span class="p">(</span><span class="k">ORDER</span> <span class="k">BY</span> <span class="n">SEQUENCE</span><span class="p">)</span> <span class="k">AS</span> <span class="nb">text</span>
+<span class="k">FROM</span>     <span class="n">stl_querytext</span> <span class="k">limit</span> <span class="mi">10</span><span class="p">;</span>
+
+<span class="n">ERROR</span><span class="p">:</span>  <span class="k">Result</span> <span class="k">size</span> <span class="n">exceeds</span> <span class="n">LISTAGG</span> <span class="k">limit</span>
+<span class="n">DETAIL</span><span class="p">:</span>
+  <span class="c1">-----------------------------------------------</span>
+  <span class="n">error</span><span class="p">:</span>  <span class="k">Result</span> <span class="k">size</span> <span class="n">exceeds</span> <span class="n">LISTAGG</span> <span class="k">limit</span>
+  <span class="n">code</span><span class="p">:</span>      <span class="mi">8001</span>
+  <span class="n">context</span><span class="p">:</span>   <span class="n">LISTAGG</span> <span class="k">limit</span><span class="p">:</span> <span class="mi">65535</span>
+  <span class="n">query</span><span class="p">:</span>     <span class="mi">180132</span>
+  <span class="k">location</span><span class="p">:</span>  <span class="mi">0</span><span class="p">.</span><span class="n">cpp</span><span class="p">:</span><span class="mi">228</span>
+  <span class="n">process</span><span class="p">:</span>   <span class="n">query0_78_180132</span> <span class="p">[</span><span class="n">pid</span><span class="o">=</span><span class="mi">23735</span><span class="p">]</span>
+  <span class="c1">-----------------------------------------------</span></code></pre></figure>
+
+<h2 id="why-this-error">Why this error?</h2>
+
+<p>If you read the LISTAGG function details, If the result set is larger than the maximum VARCHAR size (64K – 1, or 65535), then LISTAGG returns the error. Here I have more than 50k+ rows. So the overall characters will not fit in the result set.</p>
+
+<h2 id="what-is-the-solution">What is the solution?:</h2>
+
+<p>If we run the reconstruct query one by one instead of all then the resultset will fit into the LISTAGG’s limitation. Lets say one of my queries split into 2 rows in the STL_QUERYTEXT table.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="nb">text</span> 
+<span class="k">FROM</span>   <span class="n">stl_querytext</span> 
+<span class="k">WHERE</span>  <span class="n">query</span> <span class="o">=</span> <span class="mi">97729</span> 
+<span class="k">ORDER</span>  <span class="k">BY</span> <span class="n">SEQUENCE</span><span class="p">;</span> </code></pre></figure>
+
+<p><img src="/assets/RedShift Reconstructing SQL from STL_QUERYTEXT1.jpg" alt="" /></p>
+
+<p>First, process these two rows and then process another query and then the next one.</p>
+
+<h2 id="how">How?</h2>
+
+<p>We have <code class="language-html highlighter-rouge">userid</code>,<code class="language-html highlighter-rouge">pid</code>,<code class="language-html highlighter-rouge">xid</code>,<code class="language-html highlighter-rouge">query</code> columns are common between these two rows. So partition your resultset by query wise. Then do the LISTAGG.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="n">LISTAGG</span><span class="p">(</span>
+      <span class="k">CASE</span>
+        <span class="k">WHEN</span> <span class="n">LEN</span><span class="p">(</span><span class="n">RTRIM</span><span class="p">(</span><span class="nb">text</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">THEN</span> <span class="nb">text</span>
+        <span class="k">ELSE</span> <span class="n">RTRIM</span><span class="p">(</span><span class="nb">text</span><span class="p">)</span>
+      <span class="k">END</span><span class="p">,</span>
+      <span class="s1">''</span>
+    <span class="p">)</span> <span class="n">within</span> <span class="k">group</span> <span class="p">(</span>
+      <span class="k">order</span> <span class="k">by</span>
+        <span class="n">sequence</span>
+    <span class="p">)</span> <span class="n">over</span> <span class="p">(</span><span class="n">PARTITION</span> <span class="k">by</span> <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span> </code></pre></figure>
+
+<h2 id="replace-n-and-r-characters">Replace \n and \r characters:</h2>
+<p>If you are going to run this query from psql client most of the queries starts with <code class="language-html highlighter-rouge">\r\nselect * from mytbl</code> or any GUI based tools will return <code class="language-html highlighter-rouge">\n</code> characters.</p>
+<ul>
+  <li>\r actually a carriage return</li>
+  <li>\n is not a new line its a sting. 
+So we have to replace twice.</li>
+</ul>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">replace</span><span class="p">(</span><span class="k">replace</span><span class="p">(</span>
+    <span class="n">LISTAGG</span><span class="p">(</span>
+      <span class="k">CASE</span>
+        <span class="k">WHEN</span> <span class="n">LEN</span><span class="p">(</span><span class="n">RTRIM</span><span class="p">(</span><span class="nb">text</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">THEN</span> <span class="nb">text</span>
+        <span class="k">ELSE</span> <span class="n">RTRIM</span><span class="p">(</span><span class="nb">text</span><span class="p">)</span>
+      <span class="k">END</span><span class="p">,</span>
+      <span class="s1">''</span>
+    <span class="p">)</span> <span class="n">within</span> <span class="k">group</span> <span class="p">(</span>
+      <span class="k">order</span> <span class="k">by</span>
+        <span class="n">sequence</span>
+    <span class="p">)</span> <span class="n">over</span> <span class="p">(</span><span class="n">PARTITION</span> <span class="k">by</span> <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">query</span><span class="p">),</span>
+    <span class="s1">'</span><span class="se">\r</span><span class="s1">'</span><span class="p">,</span><span class="s1">''</span> 
+  <span class="p">),</span> <span class="s1">'</span><span class="se">\\</span><span class="s1">n'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span></code></pre></figure>
+
+<h2 id="final-view">Final View:</h2>
+
+<p>For east management, Im going to create a view on top of the STL_QUERYTEXT table to return the reconstructed SQL for all the queries.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">CREATE</span> <span class="k">VIEW</span> <span class="n">recon_stl_querytext</span> 
+<span class="k">AS</span> 
+  <span class="p">(</span><span class="k">SELECT</span> <span class="k">DISTINCT</span> <span class="n">userid</span><span class="p">,</span> 
+                   <span class="n">xid</span><span class="p">,</span> 
+                   <span class="n">pid</span><span class="p">,</span> 
+                   <span class="n">query</span><span class="p">,</span> 
+                   <span class="k">Replace</span><span class="p">(</span><span class="k">Replace</span><span class="p">(</span><span class="n">Listagg</span><span class="p">(</span><span class="k">CASE</span> 
+                                             <span class="k">WHEN</span> <span class="n">Len</span><span class="p">(</span><span class="n">Rtrim</span><span class="p">(</span><span class="nb">text</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">THEN</span> <span class="nb">text</span> 
+                                             <span class="k">ELSE</span> <span class="n">Rtrim</span><span class="p">(</span><span class="nb">text</span><span class="p">)</span> 
+                                           <span class="k">END</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span> 
+                                     <span class="n">within</span> <span class="k">GROUP</span> <span class="p">(</span> <span class="k">ORDER</span> <span class="k">BY</span> <span class="n">SEQUENCE</span> <span class="p">)</span> <span class="n">over</span> <span class="p">(</span> 
+                                       <span class="n">PARTITION</span> <span class="k">BY</span> <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">query</span><span class="p">),</span> 
+                           <span class="s1">'</span><span class="se">\r</span><span class="s1">'</span> 
+                           <span class="p">,</span> <span class="s1">''</span><span class="p">),</span> <span class="s1">'</span><span class="se">\\</span><span class="s1">n'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span> 
+                   <span class="k">AS</span> <span class="nb">text</span> 
+   <span class="k">FROM</span>   <span class="n">stl_querytext</span> 
+   <span class="k">ORDER</span>  <span class="k">BY</span> <span class="mi">1</span><span class="p">,</span> 
+             <span class="mi">2</span><span class="p">,</span> 
+             <span class="mi">3</span><span class="p">,</span> 
+             <span class="mi">4</span><span class="p">);</span> </code></pre></figure>
+
+<p>Now you can view the proper data from this view.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span> 
+<span class="k">FROM</span>   <span class="n">recon_stl_querytext</span> 
+<span class="k">WHERE</span>  <span class="n">query</span> <span class="o">=</span> <span class="mi">97729</span><span class="p">;</span> </code></pre></figure>
+
+<p><img src="/assets/RedShift Reconstructing SQL from STL_QUERYTEXT2.jpg" alt="" /></p>
+
+<p>I hope this helps you to get the overall consolidated view on the query history. If you are interested in how to <a href="https://medium.com/searce/audit-redshift-historical-queries-with-pgbadger-619f7f43fbd0">Audit RedShift Historical Queries With pgbadger please click here</a>.</p>
+:ET

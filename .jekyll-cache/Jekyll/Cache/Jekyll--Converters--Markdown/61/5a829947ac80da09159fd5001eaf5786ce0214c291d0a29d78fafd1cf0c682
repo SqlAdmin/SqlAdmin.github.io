@@ -1,0 +1,128 @@
+I"%<p>Neo4j is one of the top-rated Graph database platforms which supports community based Graph database and Enterprise as well. If you want to make the Neo4j database would be highly available, then we have to go with Enterprise edition that has the feature called Causal Cluster. This in blog, we are going to see how to setup and configure Neo4j causal cluster on GCP and AWS cloud platforms. The Neo4j’s documentation has well explained about this cluster setup, but I ran into some issues while deploying this on my own. Those issues made me write this blog.</p>
+
+<h2 id="causal-cluster">Causal Cluster:</h2>
+
+<p>This is nothing but a traditional replication mechanism. The whole cluster mechanism is behind the Raft algorithm. But it has some different terms.</p>
+
+<ul>
+  <li>Core - A master and slave kind of setup. If the leader fails other core node will become a new master.</li>
+  <li>Replica - Just a slave, but it’ll not participate in any election and it’ll never become the leader.</li>
+</ul>
+
+<h2 id="awsgcp">AWS/GCP:</h2>
+
+<p>This blog just gives you simple steps to create a fresh  Neo4j causal cluster. From AWS/GCP you just need to whitelist the IP address in the security group(AWS) and Firewall rules(GCP). Otherwise, all the steps are common for both deployments.</p>
+
+<h2 id="setup-details">Setup Details:</h2>
+
+<p>Here we are going to setup a 3 node cluster. We need a minimum of 2 core CPU and 2GB memory for this.</p>
+
+<ul>
+  <li><strong>Node 1</strong> - 10.128.0.72</li>
+  <li><strong>Node 2</strong> - 10.128.0.80</li>
+  <li><strong>Node 3</strong> - 10.128.0.81</li>
+</ul>
+
+<h2 id="install-neo4j-on-all-the-nodes">Install Neo4j on all the nodes:</h2>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">apt-get <span class="nt">-y</span> update
+apt <span class="nt">-y</span> <span class="nb">install </span>openjdk-8-jre
+wget <span class="nt">-O</span> - https://debian.neo4j.org/neotechnology.gpg.key | <span class="nb">sudo </span>apt-key add -
+<span class="nb">echo</span> <span class="s1">'deb https://debian.neo4j.org/repo stable/'</span> | <span class="nb">sudo tee</span> <span class="nt">-a</span> /etc/apt/sources.list.d/neo4j.list
+<span class="nb">sudo </span>apt-get <span class="nt">-y</span> update
+<span class="nb">sudo </span>apt-get <span class="nt">-y</span> <span class="nb">install </span>neo4j-enterprise<span class="o">=</span>1:3.5.14
+neo4j-admin set-initial-password <span class="s1">'root'</span></code></pre></figure>
+
+<h2 id="necessary-ports">Necessary Ports:</h2>
+
+<ol>
+  <li>5000 - discovery_listen_address</li>
+  <li>6000 - transaction_advertised_address</li>
+  <li>7000 - raft_advertised_address</li>
+  <li>7473 - HTTPS interface to access the Neo4j cluster in browser</li>
+  <li>7474 - HTTP  interface to access the Neo4j cluster in browser</li>
+  <li>7687 - Used by Cypher Shell and by Neo4j Browser</li>
+  <li>6362 - Backup port to seed the data from the Leader node.</li>
+</ol>
+
+<p>Please allow the above ports between all the nodes.</p>
+
+<h2 id="configure-the-causal-cluster">Configure the causal cluster:</h2>
+
+<p>In our setup, we use 3 nodes as a minimum number of nodes to form a cluster, also we always need 3 runtime nodes to make the cluster up and running. Update the following values in the <code class="language-html highlighter-rouge">/etc/neo4j/neo4j.conf</code> file.</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">Node 1
+dbms.security.auth_enabled<span class="o">=</span><span class="nb">true
+</span>dbms.connectors.default_listen_address<span class="o">=</span>0.0.0.0
+dbms.connectors.default_advertised_address<span class="o">=</span>10.128.0.72
+dbms.mode<span class="o">=</span>CORE
+causal_clustering.minimum_core_cluster_size_at_formation<span class="o">=</span>3
+causal_clustering.minimum_core_cluster_size_at_runtime<span class="o">=</span>3
+causal_clustering.initial_discovery_members<span class="o">=</span>10.128.0.72:5000,10.128.0.80:5000,10.128.0.81:5000
+causal_clustering.discovery_listen_address<span class="o">=</span>0.0.0.0:5000
+causal_clustering.raft_advertised_address<span class="o">=</span>10.128.0.72:7000
+causal_clustering.transaction_advertised_address<span class="o">=</span>10.128.0.72:6000
+
+Node 2
+dbms.security.auth_enabled<span class="o">=</span><span class="nb">true
+</span>dbms.connectors.default_listen_address<span class="o">=</span>0.0.0.0
+dbms.connectors.default_advertised_address<span class="o">=</span>10.128.0.80
+dbms.mode<span class="o">=</span>CORE
+causal_clustering.minimum_core_cluster_size_at_formation<span class="o">=</span>3
+causal_clustering.minimum_core_cluster_size_at_runtime<span class="o">=</span>3
+causal_clustering.initial_discovery_members<span class="o">=</span>10.128.0.72:5000,10.128.0.80:5000,10.128.0.81:5000
+causal_clustering.discovery_listen_address<span class="o">=</span>0.0.0.0:5000
+causal_clustering.raft_advertised_address<span class="o">=</span>10.128.0.80:7000
+causal_clustering.transaction_advertised_address<span class="o">=</span>10.128.0.80:6000
+
+Node 3
+dbms.security.auth_enabled<span class="o">=</span><span class="nb">true
+</span>dbms.connectors.default_listen_address<span class="o">=</span>0.0.0.0
+dbms.connectors.default_advertised_address<span class="o">=</span>10.128.0.81
+dbms.mode<span class="o">=</span>CORE
+causal_clustering.minimum_core_cluster_size_at_formation<span class="o">=</span>3
+causal_clustering.minimum_core_cluster_size_at_runtime<span class="o">=</span>3
+causal_clustering.initial_discovery_members<span class="o">=</span>10.128.0.72:5000,10.128.0.80:5000,10.128.0.81:5000
+causal_clustering.discovery_listen_address<span class="o">=</span>0.0.0.0:5000
+causal_clustering.raft_advertised_address<span class="o">=</span>10.128.0.81:7000
+causal_clustering.transaction_advertised_address<span class="o">=</span>10.128.0.81:6000</code></pre></figure>
+
+<h2 id="cleanup-the-databases">Cleanup the databases:</h2>
+
+<p>Its a fresh cluster, so all the clusters should have the same data, here once we installed the neo4j software, then the neo4j service will automatically starts and it’ll create the default database calles <code class="language-html highlighter-rouge">graph.db</code> on all the nodes. But according to the cluster, all the nodes should have same files and some metadata. Obiviously in our each node generated their own metadata in the graph database. Thats why we need to delete this system database from all the nodes.</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">service neo4j stop  
+<span class="nb">rm</span> <span class="nt">-rf</span> /var/lib/neo4j/data/databases/graph.db/  
+&lt;or you can move it to another location&gt;
+<span class="nb">mv</span> /var/lib/neo4j/data/databases/graph.db/ /opt/  </code></pre></figure>
+
+<p>If you did’t do this step, or missed anyone of the node then you’ll get the error <code class="language-html highlighter-rouge">Store copy failed due to store ID mismatch</code> Or in another case, if you already have some other databases with some data, then perform seed(its like a dump and restore from the existing node)</p>
+
+<h2 id="start-the-neo4j-cluster">Start the Neo4j cluster:</h2>
+
+<p>Now start the neo4j service on all the nodes. Order doesn’t matter here. Until all three nodes are up, your cluster won’t be formed. So all three nodes should be up.</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">service neo4j start</code></pre></figure>
+
+<p>Once you stated it’ll wait for all three nodes are up and then perform an election to pick a Leader node. Once its up, we can query the cluster status via <code class="language-html highlighter-rouge">cypher-shell</code></p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">cypher-shell  <span class="nt">-u</span> neo4j <span class="nt">-p</span> root
+neo4j&gt; CALL dbms.cluster.overview<span class="o">()</span><span class="p">;</span></code></pre></figure>
+
+<p><img src="/assets/Setup Neo4j Causal Cluster On GCP And AWS1.jpg" alt="" /></p>
+
+<p>Also you can access the database from the browser with HTTPS interface. If you have private VPN between the neo4j node and the computer where you are trying to access the HTTPS interface then you directly use the <code class="language-html highlighter-rouge">Private IP</code> with port <code class="language-html highlighter-rouge">7374</code> Or if you want to use its public IP, then you have to change the <code class="language-html highlighter-rouge">dbms.connectors.default_advertised_address</code> IP to the Node’s Public IP.</p>
+
+<p><img src="/assets/Setup Neo4j Causal Cluster On GCP And AWS2.jpg" alt="" /></p>
+
+<p><img src="/assets/Setup Neo4j Causal Cluster On GCP And AWS3.jpg" alt="" /></p>
+
+<h2 id="conclusion">Conclusion:</h2>
+
+<p>Again I’m confirming here is that this is just to give you a kickstart guide for neo4j cluster setup. You read more in-depth in the <a href="https://neo4j.com/docs/operations-manual/current/clustering/">documentation page</a>. I ran to some issues, but somehow I solved it. Here are some references to those errors.</p>
+
+<ol>
+  <li><a href="https://stackoverflow.com/questions/59768748/neo4j-casual-cluster-store-copy-failed">Neo4j - casual cluster store copy failed</a></li>
+  <li><a href="https://www.reddit.com/r/Neo4j/comments/epoubc/not_able_to_create_a_cluster/">Not able to create a cluster</a></li>
+</ol>
+:ET

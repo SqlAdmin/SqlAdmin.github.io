@@ -1,0 +1,224 @@
+<!DOCTYPE html><html lang="en" ><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><link href="/assets/css/syntax.css" rel="stylesheet"><title>AWS Athena Automatically Create Partition For Between Two Dates | The Data Guy</title><meta name="generator" content="Jekyll v4.0.0" /><meta property="og:title" content="AWS Athena Automatically Create Partition For Between Two Dates" /><meta name="author" content="Bhuvanesh" /><meta property="og:locale" content="en_US" /><meta name="description" content="Athena is one of best services in AWS to build a Data Lake solutions and do analytics on flat files which are stored in the S3. In the backend its actually using presto clusters. Here Im gonna explain automatically create AWS Athena partitions for cloudtrail between two dates." /><meta property="og:description" content="Athena is one of best services in AWS to build a Data Lake solutions and do analytics on flat files which are stored in the S3. In the backend its actually using presto clusters. Here Im gonna explain automatically create AWS Athena partitions for cloudtrail between two dates." /><meta property="og:site_name" content="The Data Guy" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2018-05-30T10:14:16+00:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="AWS Athena Automatically Create Partition For Between Two Dates" /><meta name="twitter:site" content="@bhuvithedataguy" /><meta name="twitter:creator" content="@https://twitter.com/BhuviTheDataGuy" /> <script type="application/ld+json"> {"dateModified":"2018-05-30T10:14:16+00:00","datePublished":"2018-05-30T10:14:16+00:00","url":"/2018/05/30/automatically-create-aws-athena-partitions-for-cloudtrail-between-two-dates","mainEntityOfPage":{"@type":"WebPage","@id":"/2018/05/30/automatically-create-aws-athena-partitions-for-cloudtrail-between-two-dates"},"@type":"BlogPosting","author":{"@type":"Person","name":"Bhuvanesh"},"description":"Athena is one of best services in AWS to build a Data Lake solutions and do analytics on flat files which are stored in the S3. In the backend its actually using presto clusters. Here Im gonna explain automatically create AWS Athena partitions for cloudtrail between two dates.","headline":"AWS Athena Automatically Create Partition For Between Two Dates","@context":"https://schema.org"}</script><style> *,:after,:before{box-sizing:border-box;background-color:inherit;color:inherit;margin:0;padding:0}body{font-family:system-ui, sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.7;font-size:1rem;color:#16171a}nav ul{border-right:1px solid #edf2f7}a{color:#000;text-decoration-skip-ink:auto;text-decoration:underline}pre{margin:.5rem 0;padding:.5rem}.post p{margin:.5rem 0}.post h1,.post h2,.post h3,.post h4{margin:1rem 0}.post h2:first-child,.project h2:first-child,.photo h2:first-child{margin-top:0}.meta{margin:2rem 0}code,pre{background:#ecedee}code{padding:.1rem}pre code{border:none}pre{padding:1rem;overflow-x:auto}img{max-width:100%}hr{background:#000;height:1px;border:0}header{flex-basis:10rem;flex-grow:1;position:relative}header a{text-decoration:none}header li{margin-bottom:.2rem;text-align:right;margin-right:2rem}header a.active{font-weight:bold}header,section{padding:1rem}blockquote{font-style:italic;border-left:5px solid #ececec;padding-left:1rem}h1,h2,h3,h4,h5{line-height:1;margin:1rem 0;font-weight:600}section h1:first-child{margin-top:0}strong,b{font-weight:bold}.photos ul{list-style:none}.photos li{margin-bottom:1.5rem}.photo picture,.project picture{margin-bottom:0.5rem}.posts ul,header ul{list-style:none}.posts li{align-items:center;display:flex;justify-content:space-between;margin-bottom:.5rem}.posts li a,.posts li div,.projects li a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}.posts li time,.projects li time{padding-left:1rem;white-space:nowrap;font-variant-numeric:tabular-nums}main{display:flex;flex-wrap:wrap;max-width:60rem;margin:2rem auto;padding:1rem}@media screen and (max-width: 45rem){header li{display:inline;margin-right:1rem}.logo{padding-bottom:1rem}header ul{border-bottom:1px solid #edf2f7;padding-bottom:2rem}nav ul{border-right:0px}.photos ul{margin-top:0.5rem}}section{flex-basis:0;flex-grow:999;min-width:70%;display:flex;flex-direction:column}figcaption{font-size:smaller}#share-bar{font-size:20px}#share-bar h4{margin-bottom:10px;font-weight:500}.share-button{margin:0px;margin-bottom:10px;margin-right:3px;border:1px solid #D3D6D2;padding:5px 10px 5px 10px}.share-button:hover{opacity:1;color:#ffffff}.fa-facebook-official{color:#3b5998}.fa-facebook-official:hover{background-color:#3b5998}.fa-twitter{color:#55acee}.fa-twitter:hover{background-color:#55acee}.fa-google-plus{color:#dd4b39}.fa-google-plus:hover{background-color:#dd4b39}.fa-pinterest-p{color:#cb2027}.fa-pinterest-p:hover{background-color:#cb2027}.fa-tumblr{color:#32506d}.fa-tumblr:hover{background-color:#32506d}.fa-reddit-alien{color:#ff4500}.fa-reddit-alien:hover{background-color:#ff4500}.fa-linkedin{color:#007bb5}.fa-linkedin:hover{background-color:#007bb5}.fa-envelope{color:#444444}.fa-envelope:hover{background-color:#444444}</style></head><body><main role="main"><header role="banner"><h1 class="logo">The Data Guy</h1><div class="page-author h-card p-author"><img src="/assets/circle-cropped.png" class="author-avatar u-photo" alt="Bhuvanesh"></div><nav role="navigation"><ul><li><a href="/" >Home</a></li><li><a href="/posts/" >Posts</a></li><li><a href="/categories/" >Categories</a></li><li><a href="/tags/" >Tags</a></li><li><a href="https://medium.com/@bhuvithedataguy" >Medium Blog</a></li><li><a href="/search" >Search Here</a></li></ul></nav></header><section class="post"><h2>AWS Athena Automatically Create Partition For Between Two Dates</h2><p><img src="/assets/AWS-Athena-Automatically-Create-Partition-For-Between-Two-Dates.jpg" alt="AWS Athena Automatically Create Partition For Between Two Dates" /></p><p>AWS Athena is a schema on read platform. Now Athena is one of best services in AWS to build a Data Lake solutions and do analytics on flat files which are stored in the S3. In the backend its actually using presto clusters. So most of the Presto functions are support and you can use native SQL query to query your data. You can create partitions to speedup your query and reduce the cost for scanning. Here Im gonna explain automatically create AWS Athena partitions for cloudtrail between two dates. When it is introduced I used this for analyze CloudTrail Logs which was very helpful to get some particular activities like who launched this instance, track a particular user’s activity and etc.</p><p>But the challenge was I had 3 years of CloudTrail log. It was really a huge data. So If I query to find when an instance is launched then it’ll start scanning the complete data and it took more time and added additional cost for me. Also I used around 8 regions.</p><p><strong>Here is my AWS CloudTrail Log path in S3.</strong></p><figure class="highlight"><pre><code class="language-shell" data-lang="shell">s3://bucket/AWSLogs/Account_ID/Cloudtrail/regions/year/month/day/log_files</code></pre></figure><p>So I need to create partitions from <code class="language-html highlighter-rouge">regions/year/month/day/</code> Execute create partition  query for 3 years is not an easy job. Also I  need to run the partition query on 8 regions for 3 years. Uuuuuhhhhh!! It doesn’t make sense. So I have created a Lambda function to make my job easier.  </p><p><img src="/assets/Automatically-Create-AWS-Athena-Partitions.jpg" alt="Automatically Create AWS Athena Partitions" /></p><h2 id="create-the-table-with-partitions">Create the table with Partitions</h2><figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">CREATE</span> <span class="k">EXTERNAL</span> <span class="k">TABLE</span> <span class="n">cloudtrail_log</span> <span class="p">(</span>
+<span class="n">eventversion</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">useridentity</span> <span class="n">STRUCT</span><span class="o">&lt;</span>
+               <span class="k">type</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">principalid</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">arn</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">accountid</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">invokedby</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">accesskeyid</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">userName</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+<span class="n">sessioncontext</span><span class="p">:</span><span class="n">STRUCT</span><span class="o">&lt;</span>
+<span class="n">attributes</span><span class="p">:</span><span class="n">STRUCT</span><span class="o">&lt;</span>
+               <span class="n">mfaauthenticated</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">creationdate</span><span class="p">:</span><span class="n">STRING</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="n">sessionissuer</span><span class="p">:</span><span class="n">STRUCT</span><span class="o">&lt;</span>
+               <span class="k">type</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">principalId</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">arn</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">accountId</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">userName</span><span class="p">:</span><span class="n">STRING</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="n">eventtime</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">eventsource</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">eventname</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">awsregion</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">sourceipaddress</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">useragent</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">errorcode</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">errormessage</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">requestparameters</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">responseelements</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">additionaleventdata</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">requestid</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">eventid</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">resources</span> <span class="n">ARRAY</span><span class="o">&lt;</span><span class="n">STRUCT</span><span class="o">&lt;</span>
+               <span class="n">ARN</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="n">accountId</span><span class="p">:</span><span class="n">STRING</span><span class="p">,</span>
+               <span class="k">type</span><span class="p">:</span><span class="n">STRING</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="n">eventtype</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">apiversion</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">readonly</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">recipientaccountid</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">serviceeventdetails</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">sharedeventid</span> <span class="n">STRING</span><span class="p">,</span>
+<span class="n">vpcendpointid</span> <span class="n">STRING</span>
+<span class="p">)</span>
+<span class="n">PARTITIONED</span> <span class="k">BY</span><span class="p">(</span><span class="n">region</span> <span class="n">string</span><span class="p">,</span><span class="nb">year</span> <span class="n">string</span><span class="p">,</span> <span class="k">month</span> <span class="n">string</span><span class="p">,</span> <span class="k">day</span> <span class="n">string</span><span class="p">)</span>
+<span class="k">ROW</span> <span class="n">FORMAT</span> <span class="n">SERDE</span> <span class="s1">'com.amazon.emr.hive.serde.CloudTrailSerde'</span>
+<span class="n">STORED</span> <span class="k">AS</span> <span class="n">INPUTFORMAT</span> <span class="s1">'com.amazon.emr.cloudtrail.CloudTrailInputFormat'</span>
+<span class="n">OUTPUTFORMAT</span> <span class="s1">'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'</span>
+<span class="k">LOCATION</span> <span class="s1">'s3://sqladmin-cloudtrail/AWSLogs/XXXXXXXXXX/CloudTrail/'</span><span class="p">;</span></code></pre></figure><h2 id="create-the-lambda-function">Create the Lambda function</h2><p>Go to Lambda and create a new function with Python 3.6.</p><h3 id="iam-role-for-lambda">IAM role for Lambda:</h3><ul><li>S3 – ListBukcet.</li><li>S3 – Read Object on the Cloudtrail log bucket (My bucket Name: sqladmin-cloudtraillog).</li><li>S3 – Write Object on the athena results bucket (My results bucket: aws-athena-query-results-XXXXXXXXXXXXXXXX-us-east-1).</li><li>Athena – Create Names query and Execution.</li></ul><figure class="highlight"><pre><code class="language-json" data-lang="json"><span class="p">{</span><span class="w">
+    </span><span class="nl">"Version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2012-10-17"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"Statement"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"Sid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"VisualEditor0"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Effect"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Allow"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"s3:ListBucket"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Resource"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+                </span><span class="s2">"arn:aws:s3:::aws-athena-query-results-XXXXXXXXXX-us-east-1"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"arn:aws:s3:::sqladmin-cloudtrail"</span><span class="w">
+            </span><span class="p">]</span><span class="w">
+        </span><span class="p">},</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"Sid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"VisualEditor1"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Effect"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Allow"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"s3:PutObject"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Resource"</span><span class="p">:</span><span class="w"> </span><span class="s2">"arn:aws:s3:::aws-athena-query-results-XXXXXXXXXXXXXXXX-us-east-1/*"</span><span class="w">
+        </span><span class="p">},</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"Sid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"VisualEditor2"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Effect"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Allow"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Action"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+                </span><span class="s2">"s3:GetObjectAcl"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"s3:GetObject"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"s3:GetObjectTagging"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"s3:GetBucketPolicy"</span><span class="w">
+            </span><span class="p">],</span><span class="w">
+            </span><span class="nl">"Resource"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+                </span><span class="s2">"arn:aws:s3:::sqladmin-cloudtrail"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"arn:aws:s3:::sqladmin-cloudtrail/*"</span><span class="w">
+            </span><span class="p">]</span><span class="w">
+        </span><span class="p">},</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"Sid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"VisualEditor3"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Effect"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Allow"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"Action"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+                </span><span class="s2">"athena:StartQueryExecution"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"athena:CreateNamedQuery"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"athena:RunQuery"</span><span class="w">
+            </span><span class="p">],</span><span class="w">
+            </span><span class="nl">"Resource"</span><span class="p">:</span><span class="w"> </span><span class="s2">"*"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span></code></pre></figure><p>NOTE</p><p>AWS Lambda can run upto 5mins only. So if you want to create partitions for more than 3 months then give the start_date and end_date only for 3 months per execution. OR run this on a server.</p><p><strong>#update:</strong> Now lambda supports 15mins execution</p><p>Parameters for S3 bucket and Athena</p><hr /><ul><li><em>​s3_bucket</em> – Bucket name where your cloudtrail logs stored.</li><li><em>s3_prefix</em> – Path for your cloudtrail logs (give the prefix before the regions. For eg: <code class="language-html highlighter-rouge">s3://bucket/AWSLogs/AccountID/Cloudtrail/regions/year/month/day/log_files</code>. So you need to use path: <code class="language-html highlighter-rouge">AWSLogs/AccountID/Cloudtrail/</code> ).</li><li><em>s3_ouput</em> – Path for where your Athena query results need to be saved.</li><li><em>database</em> – Name of the DB where your cloudwatch logs table located.</li><li><em>table_name</em> – Nanme of the table where your cloudwatch logs table located.</li><li><em>start_date</em> – Start date for creating partition.</li><li><em>end_date</em> – Last date for creating partition.</li></ul><h2 id="function-for-get-range-from-given-two-dates">Function for get range from given two dates</h2><figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">daterange</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span> <span class="p">((</span><span class="n">end_date</span> <span class="o">-</span> <span class="n">start_date</span><span class="p">).</span><span class="n">days</span><span class="p">)):</span>
+<span class="k">yield</span> <span class="n">start_date</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">n</span><span class="p">)</span></code></pre></figure><h2 id="function-for-execute-the-athena-query">Function for execute the Athena Query</h2><figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">run_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">s3_output</span><span class="p">):</span>
+        <span class="n">query_response</span> <span class="o">=</span> <span class="n">athena</span><span class="p">.</span><span class="n">start_query_execution</span><span class="p">(</span>
+        <span class="n">QueryString</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">QueryExecutionContext</span><span class="o">=</span><span class="p">{</span>
+            <span class="s">'Database'</span><span class="p">:</span> <span class="n">database</span>
+            <span class="p">},</span>
+        <span class="n">ResultConfiguration</span><span class="o">=</span><span class="p">{</span>
+            <span class="s">'OutputLocation'</span><span class="p">:</span> <span class="n">s3_output</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'Execution ID: '</span> <span class="o">+</span> <span class="n">query_response</span><span class="p">[</span><span class="s">'QueryExecutionId'</span><span class="p">])</span>
+<span class="k">return</span> <span class="n">query_response</span></code></pre></figure><h2 id="main-function-to-automatically-create-aws-athena-partitions">Main Function to Automatically create AWS Athena partitions</h2><blockquote><p>Athena support <strong>20 concurrent</strong> executions only. We need control the Lambda/Python to wait for sometime before execute the next loop. So I have given <strong>2 secs</strong> before execute the next loop.</p></blockquote><figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">lambda_handler</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+ <span class="n">result</span> <span class="o">=</span>  <span class="n">s3</span><span class="p">.</span><span class="n">list_objects</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">s3_buckcet</span><span class="p">,</span><span class="n">Prefix</span><span class="o">=</span><span class="n">s3_prefix</span><span class="p">,</span> <span class="n">Delimiter</span><span class="o">=</span><span class="s">'/'</span><span class="p">)</span>
+ <span class="k">for</span> <span class="n">regions</span> <span class="ow">in</span> <span class="n">result</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'CommonPrefixes'</span><span class="p">):</span>
+             <span class="n">get_region</span><span class="o">=</span><span class="p">(</span><span class="n">regions</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'Prefix'</span><span class="p">,</span><span class="s">''</span><span class="p">).</span><span class="n">replace</span><span class="p">(</span><span class="n">s3_prefix</span><span class="p">,</span><span class="s">''</span><span class="p">).</span><span class="n">replace</span><span class="p">(</span><span class="s">'/'</span><span class="p">,</span><span class="s">''</span><span class="p">))</span>
+             <span class="k">for</span> <span class="n">single_date</span> <span class="ow">in</span> <span class="n">daterange</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+                 <span class="n">partition_day</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">single_date</span><span class="p">.</span><span class="n">day</span><span class="p">).</span><span class="n">rjust</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s">'0'</span><span class="p">)</span>
+                 <span class="n">partition_month</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">single_date</span><span class="p">.</span><span class="n">month</span><span class="p">).</span><span class="n">rjust</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s">'0'</span><span class="p">)</span>
+                 <span class="n">partition_year</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">single_date</span><span class="p">.</span><span class="n">year</span><span class="p">).</span><span class="n">rjust</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s">'0'</span><span class="p">)</span>
+                 <span class="k">print</span><span class="p">(</span><span class="n">partition_day</span><span class="p">,</span> <span class="n">partition_month</span><span class="p">,</span> <span class="n">partition_year</span><span class="p">)</span>
+                 <span class="n">query</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s">"ALTER TABLE "</span><span class="o">+</span> <span class="n">table_name</span> <span class="o">+</span><span class="s">" ADD PARTITION (region='"</span>
+                 <span class="o">+</span> <span class="n">get_region</span> <span class="o">+</span> <span class="s">"',year="</span>
+                 <span class="o">+</span> <span class="n">partition_year</span> <span class="o">+</span> <span class="s">",month="</span>
+                 <span class="o">+</span> <span class="n">partition_month</span> <span class="o">+</span> <span class="s">",day="</span>
+                 <span class="o">+</span> <span class="n">partition_day</span>
+                 <span class="o">+</span> <span class="s">") location '"</span><span class="o">+</span><span class="n">s3_input</span>
+                 <span class="o">+</span> <span class="n">get_region</span>
+                 <span class="o">+</span> <span class="s">"/"</span> <span class="o">+</span> <span class="n">partition_year</span> <span class="o">+</span> <span class="s">"/"</span> <span class="o">+</span> <span class="n">partition_month</span> <span class="o">+</span> <span class="s">"/"</span>
+                 <span class="o">+</span> <span class="n">partition_day</span> <span class="o">+</span> <span class="s">"';"</span><span class="p">)</span>
+                 <span class="c1">#print(get_region)
+</span>                 <span class="c1">#print(query)
+</span>                 <span class="n">run_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">s3_ouput</span><span class="p">)</span>
+<span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></code></pre></figure><h2 id="find-the-final-code">Find the final Code</h2><figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="c1"># Lambda function to create partition for Cloudtrail log on daily basis.
+# You need to schedule it in AWS Lambda.
+</span>
+<span class="s">'''
+-------------------------------------------
+AWS Athena Create Partitions Automatically
+-------------------------------------------
+Version 1.0
+Author: BhuviTheDataGuy
+Twitter: https://twitter.com/BhuviTheDataGuy
+License: Free for educational purpose.                 
+NOTE: 
+-----
+1) Before schedule it, you need to create partitions for till current date.
+2) This is will start creating partitions with next day [current date +1].
+3) This will not return the Athena query is successful or not. But this
+   will return the Query Execution ID. 
+HOW THIS WORKS:
+---------------
+1) It'll check the list of regions that cloudwatch logs captured from the 
+   S3. Becuase few peoples will use only particular region. So they won't
+   get any logs on other regions. 
+2) Then it'll start executing the create partition queries against all 
+   the regions. 
+Example Cloudtrail Path:
+-----------------------
+s3://bucket/AWSLogs/Account_ID/Cloudtrail/regions/year/month/day/log_files
+PARAMETERS NEEDS TO CHANGE:
+---------------------------
+1) s3_buckcet - Bucket name where your cloudtrail logs stored.
+2) s3_prefix - Path for your cloudtrail logs (give the prefix before the regions. 
+   for eg: s3://bucket/AWSLogs/AccountID/Cloudtrail/regions/year/month/day/log_files
+   So you need to use path: AWSLogs/AccountID/Cloudtrail/ )
+3) s3_ouput - Path for where your Athena query results need to be saved.
+4) database - Name of the DB where your Cloudtrail logs table located.
+5) table_name - Nanme of the table where your Cloudtrail logs table located.
+DEBUGGING:
+----------
+1) comment the line 103 [run_query(query, database, s3_ouput]
+2) remove comment from line 101 and 102 [print(get-regions), print(query)]
+---------------------------------------------------------------------------------'''</span>
+
+<span class="c1">#Import libraries 
+</span><span class="kn">import</span> <span class="nn">boto3</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="c1">#Connection for S3 and Athena
+</span><span class="n">s3</span> <span class="o">=</span> <span class="n">boto3</span><span class="p">.</span><span class="n">client</span><span class="p">(</span><span class="s">'s3'</span><span class="p">)</span>
+<span class="n">athena</span> <span class="o">=</span> <span class="n">boto3</span><span class="p">.</span><span class="n">client</span><span class="p">(</span><span class="s">'athena'</span><span class="p">)</span>
+
+<span class="c1">#Get Year, Month, Day for partition (this will get tomorrow date's value)
+</span><span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">.</span><span class="n">datetime</span><span class="p">.</span><span class="n">now</span><span class="p">()</span>
+<span class="n">athena_year</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">.</span><span class="n">year</span><span class="p">)</span>
+<span class="n">athena_month</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">.</span><span class="n">month</span><span class="p">).</span><span class="n">rjust</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s">'0'</span><span class="p">)</span>
+<span class="n">athena_day</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">.</span><span class="n">day</span> <span class="o">+</span> <span class="mi">1</span><span class="p">).</span><span class="n">rjust</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s">'0'</span><span class="p">)</span>
+
+<span class="c1">#Parameters for S3 log location and Athena table
+#Fill this carefully (Read the commented section on top to help)
+</span><span class="n">s3_buckcet</span> <span class="o">=</span> <span class="s">'cloudtrail-logs'</span>
+<span class="n">s3_prefix</span> <span class="o">=</span> <span class="s">'AWSLogs/XXXXXXXXXXXX/CloudTrail/'</span>
+<span class="n">s3_input</span> <span class="o">=</span> <span class="s">'s3://'</span> <span class="o">+</span> <span class="n">s3_buckcet</span> <span class="o">+</span> <span class="s">'/'</span> <span class="o">+</span> <span class="n">s3_prefix</span>
+<span class="n">s3_ouput</span> <span class="o">=</span> <span class="s">'s3://aws-athena-query-results-XXXXXXXXXXXXXX-us-east-1'</span>
+<span class="n">database</span> <span class="o">=</span> <span class="s">'athena_log_database'</span>
+<span class="n">table_name</span> <span class="o">=</span> <span class="s">'cloudtrail_logs_table'</span>
+
+
+<span class="c1">#Executing the athena query:
+</span><span class="k">def</span> <span class="nf">run_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">s3_output</span><span class="p">):</span>
+        <span class="n">query_response</span> <span class="o">=</span> <span class="n">athena</span><span class="p">.</span><span class="n">start_query_execution</span><span class="p">(</span>
+        <span class="n">QueryString</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">QueryExecutionContext</span><span class="o">=</span><span class="p">{</span>
+            <span class="s">'Database'</span><span class="p">:</span> <span class="n">database</span>
+            <span class="p">},</span>
+        <span class="n">ResultConfiguration</span><span class="o">=</span><span class="p">{</span>
+            <span class="s">'OutputLocation'</span><span class="p">:</span> <span class="n">s3_output</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'Execution ID: '</span> <span class="o">+</span> <span class="n">query_response</span><span class="p">[</span><span class="s">'QueryExecutionId'</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">query_response</span>
+    
+<span class="c1">#Main function for get regions and run the query on the captured regions
+</span><span class="k">def</span> <span class="nf">lambda_handler</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+ <span class="n">result</span> <span class="o">=</span>  <span class="n">s3</span><span class="p">.</span><span class="n">list_objects</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">s3_buckcet</span><span class="p">,</span><span class="n">Prefix</span><span class="o">=</span><span class="n">s3_prefix</span><span class="p">,</span> <span class="n">Delimiter</span><span class="o">=</span><span class="s">'/'</span><span class="p">)</span>
+ <span class="k">for</span> <span class="n">regions</span> <span class="ow">in</span> <span class="n">result</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'CommonPrefixes'</span><span class="p">):</span>
+    <span class="n">get_region</span><span class="o">=</span><span class="p">(</span><span class="n">regions</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'Prefix'</span><span class="p">,</span><span class="s">''</span><span class="p">).</span><span class="n">replace</span><span class="p">(</span><span class="n">s3_prefix</span><span class="p">,</span><span class="s">''</span><span class="p">).</span><span class="n">replace</span><span class="p">(</span><span class="s">'/'</span><span class="p">,</span><span class="s">''</span><span class="p">))</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s">"ALTER TABLE "</span><span class="o">+</span> <span class="n">table_name</span> <span class="o">+</span><span class="s">" ADD PARTITION (region='"</span>
+            <span class="o">+</span> <span class="n">get_region</span> <span class="o">+</span> <span class="s">"',year="</span>
+            <span class="o">+</span> <span class="n">athena_year</span> <span class="o">+</span> <span class="s">",month="</span> 
+            <span class="o">+</span> <span class="n">athena_month</span> <span class="o">+</span> <span class="s">",day="</span>
+            <span class="o">+</span> <span class="n">athena_day</span>
+            <span class="o">+</span> <span class="s">") location '"</span><span class="o">+</span><span class="n">s3_input</span>
+            <span class="o">+</span> <span class="n">get_region</span>
+            <span class="o">+</span> <span class="s">"/"</span> <span class="o">+</span> <span class="n">athena_year</span> <span class="o">+</span> <span class="s">"/"</span> <span class="o">+</span> <span class="n">athena_month</span> <span class="o">+</span> <span class="s">"/"</span>
+            <span class="o">+</span> <span class="n">athena_day</span> <span class="o">+</span> <span class="s">"';"</span><span class="p">)</span>
+      <span class="c1">#print(get_region) -- for debug
+</span>      <span class="c1">#print(query) -- for debug
+</span>    <span class="n">run_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">s3_ouput</span><span class="p">)</span>
+    </code></pre></figure><span class="meta"><time datetime="2018-05-30T10:14:16+00:00">May 30, 2018</time> &middot; <a href="/tags/#athena">athena</a>, <a href="/tags/#automation">automation</a>, <a href="/tags/#aws">aws</a>, <a href="/tags/#lamba">lamba</a>, <a href="/tags/#python">python</a></span><hr> <!--<span class="meta"><time datetime="2018-05-30T10:14:16+00:00">May 30, 2018</time> &middot; <a class="post" href="/tag/athena">athena</a>, <a class="post" href="/tag/automation">automation</a>, <a class="post" href="/tag/aws">aws</a>, <a class="post" href="/tag/lamba">lamba</a>, <a class="post" href="/tag/python">python</a></span> --></section></main></body></html>

@@ -1,0 +1,2 @@
+I"“<p>To run Runeck server on port 80 we need to configure nginx proxypass for rundeck. The web console for runeck will use proxy to run port 80.</p>
+:ET

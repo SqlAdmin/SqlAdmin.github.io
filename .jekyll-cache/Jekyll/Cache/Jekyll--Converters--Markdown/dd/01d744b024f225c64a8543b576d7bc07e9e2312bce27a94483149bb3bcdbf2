@@ -1,0 +1,2 @@
+I"©<p>This post will explain how to Migrate PostgreSQL users from on-prem or EC2 PostgreSQL to RDS. We canâ€™t grant superuser in RDS instead we can use rds_superuser.</p>
+:ET

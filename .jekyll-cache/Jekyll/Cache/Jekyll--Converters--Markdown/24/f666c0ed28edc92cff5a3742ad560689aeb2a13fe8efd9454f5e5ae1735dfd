@@ -1,0 +1,134 @@
+I"�9<p><a href="https://thedataguy.in/redshift-reconstructing-sql-from-sql-querytext/">In my last post</a>, I have experimented to reconstruct the complete <code class="language-html highlighter-rouge">stl_querytext</code> table in RedShift using <code class="language-html highlighter-rouge">LISTAGG()</code> function. But there is a limitation in that. If you read AWS Doc for LISTAGG, you can’t group the rows which are more than 65535 characters. What happens if we have tens of thousands of lines of SQL queries? It’ll throw the limitation error for sure. I didn’t find a much better solution in RedShift to solve this. So I decided to use other services which are cheaper to do this work. And that’s why you are here. Yes, this time I used AWS Athena an interactive analytics platform where we can query the data in an S3 bucket directly. Lets see how to reconstruct all the queries in <code class="language-html highlighter-rouge">stl_querytext</code> table using Athena.</p>
+
+<h2 id="unload-the-data">Unload the data:</h2>
+
+<p>Athena can’t use the RedShift directly to query the data, we have to export the data into S3 bucket. Here we are going to do the same. But a minor change, the data in stl_querytext table has some special characters like <code class="language-html highlighter-rouge">\r</code> and <code class="language-html highlighter-rouge">\n</code> t what ill break our process in Athena. So while exporting the data, we have to replace then with whitespace.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">Replace</span><span class="p">(</span><span class="k">Replace</span><span class="p">(</span><span class="nb">text</span><span class="p">,</span> <span class="s1">'</span><span class="se">\r</span><span class="s1">'</span><span class="p">,</span> <span class="s1">''</span><span class="p">),</span> <span class="s1">'</span><span class="se">\\</span><span class="s1">n'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span> <span class="k">AS</span> <span class="nb">text</span> </code></pre></figure>
+
+<p>But unfortunately, I was not able to use this SQL syntax in unload command, it didn’t replace anything.  (I have request AWS Support to solve this, I’ll this blog once I got the solution), but we can create a view on top of the <code class="language-html highlighter-rouge">stl_querytext</code> to replace these characters.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">CREATE</span> <span class="k">VIEW</span> <span class="n">v_stl_querytext</span> 
+<span class="k">AS</span> 
+  <span class="p">(</span><span class="k">SELECT</span> <span class="n">userid</span><span class="p">,</span> 
+          <span class="n">xid</span><span class="p">,</span> 
+          <span class="n">pid</span><span class="p">,</span> 
+          <span class="n">query</span><span class="p">,</span> 
+          <span class="n">SEQUENCE</span><span class="p">,</span> 
+          <span class="k">Replace</span><span class="p">(</span><span class="k">Replace</span><span class="p">(</span><span class="nb">text</span><span class="p">,</span> <span class="s1">'</span><span class="se">\r</span><span class="s1">'</span><span class="p">,</span> <span class="s1">''</span><span class="p">),</span> <span class="s1">'</span><span class="se">\\</span><span class="s1">n'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span> <span class="k">AS</span> <span class="nb">text</span> 
+   <span class="k">FROM</span>   <span class="n">stl_querytext</span><span class="p">)</span> </code></pre></figure>
+
+<p>Now lest unload the data to S3 bucket, make sure you have a proper IAM role to access the S3 bucket and change the bucket name and path as per your need.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="n">unload</span> <span class="p">(</span><span class="s1">'select * from  v_stl_querytext'</span><span class="p">)</span> 
+<span class="k">to</span> <span class="s1">'s3://mybucket/querytxt/querytxt.csv'</span> 
+<span class="n">iam_role</span> <span class="s1">'arn:aws:iam::1111111111:role/Access-S3'</span> 
+<span class="n">REGION</span> <span class="s1">'ap-south-1'</span> 
+<span class="n">HEADER</span> 
+<span class="k">delimiter</span> <span class="s1">'|'</span> 
+<span class="n">ADDQUOTES</span><span class="p">;</span></code></pre></figure>
+
+<h2 id="update-2020-03-30">Update: 2020-03-30</h2>
+<p>Instead of creating the view, you can use the following query to unload the data.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="c1">-- Credit: AWS team</span>
+<span class="n">unload</span> <span class="p">(</span><span class="s1">'SELECT userid,
+        xid,
+        pid,
+        query,
+        sequence,
+        replace(replace(text,
+        </span><span class="se">\'\\\\</span><span class="s1">n</span><span class="se">\'</span><span class="s1">,</span><span class="se">\'\'</span><span class="s1">),</span><span class="se">\'\\\\</span><span class="s1">r</span><span class="se">\'</span><span class="s1">,</span><span class="se">\'\'</span><span class="s1">) AS txt
+FROM stl_querytext'</span><span class="p">)</span> 
+<span class="k">to</span> <span class="s1">'s3://mybucket/querytxt/querytxt.csv'</span> 
+<span class="n">iam_role</span> <span class="s1">'arn:aws:iam::1111111111:role/Access-S3'</span> 
+<span class="n">REGION</span> <span class="s1">'ap-south-1'</span> 
+<span class="n">HEADER</span> 
+<span class="k">delimiter</span> <span class="s1">'|'</span> 
+<span class="n">ADDQUOTES</span><span class="p">;</span></code></pre></figure>
+
+<p>If you want to add compress, please enable it, which will improve your Athena query performance.</p>
+
+<h2 id="athena-table">Athena Table:</h2>
+<p>Now lets go and create a table in Athena to query the data in S3.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">CREATE</span> <span class="k">EXTERNAL</span> <span class="k">TABLE</span> <span class="nv">`stl_querytext`</span><span class="p">(</span>
+  <span class="nv">`userid`</span> <span class="n">string</span> <span class="k">COMMENT</span> <span class="s1">'from deserializer'</span><span class="p">,</span> 
+  <span class="nv">`xid`</span> <span class="n">string</span> <span class="k">COMMENT</span> <span class="s1">'from deserializer'</span><span class="p">,</span> 
+  <span class="nv">`pid`</span> <span class="n">string</span> <span class="k">COMMENT</span> <span class="s1">'from deserializer'</span><span class="p">,</span> 
+  <span class="nv">`query`</span> <span class="n">string</span> <span class="k">COMMENT</span> <span class="s1">'from deserializer'</span><span class="p">,</span> 
+  <span class="nv">`sequence`</span> <span class="n">string</span> <span class="k">COMMENT</span> <span class="s1">'from deserializer'</span><span class="p">,</span> 
+  <span class="nv">`text`</span> <span class="n">string</span> <span class="k">COMMENT</span> <span class="s1">'from deserializer'</span><span class="p">)</span>
+<span class="k">ROW</span> <span class="n">FORMAT</span> <span class="n">SERDE</span> 
+  <span class="s1">'org.apache.hadoop.hive.serde2.OpenCSVSerde'</span> 
+<span class="k">WITH</span> <span class="n">SERDEPROPERTIES</span> <span class="p">(</span> 
+  <span class="s1">'escapeChar'</span><span class="o">=</span><span class="s1">'</span><span class="se">\\</span><span class="s1">'</span><span class="p">,</span> 
+  <span class="s1">'quoteChar'</span><span class="o">=</span><span class="s1">'</span><span class="se">\"</span><span class="s1">'</span><span class="p">,</span> 
+  <span class="s1">'separatorChar'</span><span class="o">=</span><span class="s1">'|'</span><span class="p">)</span> 
+<span class="n">STORED</span> <span class="k">AS</span> <span class="n">INPUTFORMAT</span> 
+  <span class="s1">'org.apache.hadoop.mapred.TextInputFormat'</span> 
+<span class="n">OUTPUTFORMAT</span> 
+  <span class="s1">'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'</span>
+<span class="k">LOCATION</span>
+  <span class="s1">'s3://mybucket/querytxt/'</span>
+<span class="n">TBLPROPERTIES</span> <span class="p">(</span>
+  <span class="s1">'skip.header.line.count'</span><span class="o">=</span><span class="s1">'1'</span><span class="p">)</span> </code></pre></figure>
+
+<p>We are almost done, now let’s write some SQL queries to reconstruct the stl_querytext table.</p>
+
+<h2 id="reconstruct-the-sql-queries">Reconstruct the SQL Queries:</h2>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">with</span> <span class="n">cte</span> <span class="k">as</span>
+    <span class="p">(</span><span class="k">SELECT</span> <span class="n">userid</span><span class="p">,</span>
+         <span class="n">xid</span><span class="p">,</span>
+        <span class="n">pid</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">,</span>
+         <span class="n">sequence</span><span class="p">,</span>
+         <span class="nb">text</span><span class="p">,</span>
+        <span class="n">row_number</span><span class="p">()</span>
+        <span class="n">OVER</span> <span class="p">(</span><span class="n">PARTITION</span> <span class="k">BY</span> <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span><span class="n">pid</span><span class="p">,</span><span class="n">query</span>
+    <span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">sequence</span><span class="p">)</span> <span class="k">AS</span> <span class="n">rank</span>
+    <span class="k">FROM</span> <span class="n">stl_querytext</span>
+    <span class="k">GROUP</span> <span class="k">BY</span>  <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span><span class="n">pid</span><span class="p">,</span><span class="n">query</span><span class="p">,</span><span class="n">sequence</span><span class="p">,</span><span class="nb">text</span>
+    <span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">rank</span><span class="p">)</span>
+<span class="k">SELECT</span> <span class="n">userid</span><span class="p">,</span>
+         <span class="n">xid</span><span class="p">,</span>
+        <span class="n">pid</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">,</span>
+        <span class="n">array_join</span><span class="p">(</span><span class="n">array_agg</span><span class="p">(</span><span class="nb">text</span><span class="p">),</span>
+         <span class="s1">''</span><span class="p">)</span> <span class="k">as</span> <span class="nb">text</span>
+<span class="k">FROM</span> <span class="n">cte</span>
+<span class="k">GROUP</span> <span class="k">BY</span>  <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span><span class="n">pid</span><span class="p">,</span><span class="n">query</span>
+<span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">query</span></code></pre></figure>
+
+<p><img src="/assets/Reconstrcut RedShift STL_QUERYTEXT using AWS Athena.jpg" alt="" /></p>
+
+<p>Ohhh!!! Im impressed by its performance, Last time, when  I perform the same activity on RedShift some times it took a min to complete, but Athena did a great job. Try it out and comment below if you face any issues.</p>
+
+<h2 id="update-2020-03-30-1">Update: 2020-03-30</h2>
+
+<p>I faced an issue with Athena recently, what happened is the array_agg() is not maintaining the query order. So some queries may be incorrect in the result reset. We can solve them by using <code class="language-html highlighter-rouge">array_join(array_agg(text ORDER BY  sequence), '') AS text</code> and again this syntax will not support in Athena because it 1.7x version. Im not sure when AWS is going to update the Athena’s presto verison. But if you want to use presto in EMR, it’ll work. Use the following query.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">with</span> <span class="n">cte</span> <span class="k">AS</span> 
+    <span class="p">(</span><span class="k">SELECT</span> <span class="n">userid</span><span class="p">,</span>
+         <span class="n">xid</span><span class="p">,</span>
+         <span class="n">pid</span><span class="p">,</span>
+         <span class="n">query</span><span class="p">,</span>
+         <span class="n">sequence</span><span class="p">,</span>
+         <span class="nb">text</span><span class="p">,</span>
+         <span class="n">row_number</span><span class="p">()</span>
+        <span class="n">OVER</span> <span class="p">(</span><span class="n">PARTITION</span> <span class="k">BY</span> <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span><span class="n">pid</span><span class="p">,</span><span class="n">query</span>
+    <span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">sequence</span><span class="p">)</span> <span class="k">AS</span> <span class="n">rank</span>
+    <span class="k">FROM</span> <span class="n">stl_querytext</span>
+    <span class="k">GROUP</span> <span class="k">BY</span>  <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span><span class="n">pid</span><span class="p">,</span><span class="n">query</span><span class="p">,</span><span class="n">sequence</span><span class="p">,</span><span class="nb">text</span>
+    <span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">rank</span><span class="p">)</span>
+<span class="k">SELECT</span> <span class="n">userid</span><span class="p">,</span>
+         <span class="n">xid</span><span class="p">,</span>
+         <span class="n">pid</span><span class="p">,</span>
+         <span class="n">query</span><span class="p">,</span>
+         <span class="n">array_join</span><span class="p">(</span><span class="n">array_agg</span><span class="p">(</span><span class="nb">text</span> <span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">sequence</span><span class="p">),</span> <span class="s1">''</span><span class="p">)</span> <span class="k">AS</span> <span class="nb">text</span>
+<span class="k">FROM</span> <span class="n">cte</span>
+<span class="k">GROUP</span> <span class="k">BY</span>  <span class="n">userid</span><span class="p">,</span> <span class="n">xid</span><span class="p">,</span><span class="n">pid</span><span class="p">,</span><span class="n">query</span>
+<span class="k">ORDER</span> <span class="k">BY</span>  <span class="n">query</span><span class="p">;</span></code></pre></figure>
+
+:ET

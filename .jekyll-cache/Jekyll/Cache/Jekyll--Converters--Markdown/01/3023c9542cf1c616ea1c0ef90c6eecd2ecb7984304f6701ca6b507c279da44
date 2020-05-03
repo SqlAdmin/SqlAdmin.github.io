@@ -1,0 +1,77 @@
+I"^)<p>If you are going to migrate your MySQL workloads to GCP’s managed database service CloudSQL, then you have to keep these points in mind. We have done a lot of CloudSQL migrations. But sometimes it’s not smooth as we thought. Generally, people don’t even think that these thinks will make the replication failure. I listing 3 things that ate our brain and time while migrating to CloudSQL.</p>
+
+<h2 id="1-server-character-set">1. Server character set:</h2>
+<p>CloudSQL by default using <code class="language-html highlighter-rouge">utf8</code> as the server character set. But it is customizable, we can change it any time. But still, it’ll mess up your application later. We had a MySQL server on a VM where the server’s character set was <code class="language-html highlighter-rouge">latin1</code>. We dump the database and restore it to CloudSQL. While launching the CloudSQL we didn’t set up any Database flags. So the data restore with <code class="language-html highlighter-rouge">utf8</code> character set.</p>
+
+<p><strong>Before Migration</strong></p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="n">mysql</span><span class="o">&gt;</span> <span class="k">SHOW</span> <span class="k">SESSION</span> <span class="n">VARIABLES</span> <span class="k">LIKE</span> <span class="s1">'character</span><span class="se">\_</span><span class="s1">set</span><span class="se">\_</span><span class="s1">%'</span><span class="p">;</span>
+
+<span class="o">+</span><span class="c1">--------------------------+--------+</span>
+<span class="o">|</span> <span class="n">Variable_name</span>            <span class="o">|</span> <span class="n">Value</span>  <span class="o">|</span>
+<span class="o">+</span><span class="c1">--------------------------+--------+</span>
+<span class="o">|</span> <span class="n">character_set_client</span>     <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_connection</span> <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_database</span>   <span class="o">|</span> <span class="n">latin1</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_filesystem</span> <span class="o">|</span> <span class="nb">binary</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_results</span>    <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_server</span>     <span class="o">|</span> <span class="n">latin1</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_system</span>     <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">+</span><span class="c1">--------------------------+--------+</span></code></pre></figure>
+
+<p><strong>After Migration</strong></p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="n">mysql</span><span class="o">&gt;</span>  <span class="k">SHOW</span> <span class="k">SESSION</span> <span class="n">VARIABLES</span> <span class="k">LIKE</span> <span class="s1">'character</span><span class="se">\_</span><span class="s1">set</span><span class="se">\_</span><span class="s1">%'</span><span class="p">;</span>
+<span class="o">+</span><span class="c1">--------------------------+--------+</span>
+<span class="o">|</span> <span class="n">Variable_name</span>            <span class="o">|</span> <span class="n">Value</span>  <span class="o">|</span>
+<span class="o">+</span><span class="c1">--------------------------+--------+</span>
+<span class="o">|</span> <span class="n">character_set_client</span>     <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_connection</span> <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_database</span>   <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_filesystem</span> <span class="o">|</span> <span class="nb">binary</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_results</span>    <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_server</span>     <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">character_set_system</span>     <span class="o">|</span> <span class="n">utf8</span>   <span class="o">|</span>
+<span class="o">+</span><span class="c1">--------------------------+--------+</span></code></pre></figure>
+
+<p>We had a table which has the data in Japanise language.  But after cutover, we were not able to get the exact data. 
+<strong>Actual Data</strong></p>
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="syntax"><code>サッポロプレミアム生ビール（中ジョッキ) 
+</code></pre></div></div>
+<p><strong>After the migration</strong></p>
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="syntax"><code>ã‚µãƒƒãƒ�ãƒ­ãƒ—ãƒ¬ãƒŸã‚¢ãƒ ç”Ÿãƒ“ãƒ¼ãƒ«ï¼ˆä¸­ã‚¸ãƒ§ãƒƒã‚­)
+</code></pre></div></div>
+
+<h3 id="things-we-tried-to-solve-but-didnt-work">Things we tried to solve but didn’t work:</h3>
+<ol>
+  <li>Changed the <code class="language-html highlighter-rouge">character_set_server</code> to <code class="language-html highlighter-rouge">latin1</code>.</li>
+  <li>Dump the table from the same server with <code class="language-html highlighter-rouge">--default-character-set=latin1</code> and restored.</li>
+  <li>Dump the table from the old MySQL server with <code class="language-html highlighter-rouge">--default-character-set=latin1</code> and restored the dump again with <code class="language-html highlighter-rouge">--default-character-set=latin1</code>.</li>
+  <li>Created a new replica with <code class="language-html highlighter-rouge">character_set_server = latin1</code></li>
+</ol>
+
+<h3 id="what-we-did-as-a-workaround">What we did as a Workaround:</h3>
+<p>From the application, change the default client connection to <code class="language-html highlighter-rouge">latin1</code>.  But please make sure the character server character set before the migration.</p>
+
+<h2 id="2-myisam-tables">2. MyISAM tables:</h2>
+<p>Everybody aware that CloudSQL only supports the <code class="language-html highlighter-rouge">innodb</code> engine. But the CloudSQL migration option will help you to convert the MyISAM engine to Innodb during the restore. We had a very large table. So we let the conversion with CloudSQL. Once the data had been restored then the replication started without any issues. But After a few hours, we noticed that the replication is broken due to Duplicate Key conflict. We got an error message like below.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="n">Could</span> <span class="k">not</span> <span class="k">execute</span> <span class="n">Write_rows</span> <span class="n">event</span> <span class="k">on</span> <span class="k">table</span> <span class="n">dbname</span><span class="p">.</span><span class="n">tablename</span><span class="p">;</span> <span class="n">Duplicate</span> <span class="n">entry</span> <span class="s1">'32640'</span> <span class="k">for</span> <span class="k">key</span> <span class="s1">'PRIMARY'</span><span class="p">,</span> <span class="n">Error_code</span><span class="p">:</span> <span class="mi">1062</span><span class="p">;</span> <span class="k">handler</span> <span class="n">error</span> <span class="n">HA_ERR_FOUND_DUPP_KEY</span><span class="p">;</span> <span class="n">the</span> <span class="n">event</span><span class="s1">'s master log mysql-bin.000576, end_log_pos 16529819</span></code></pre></figure>
+
+<p>We saw that the table had <code class="language-html highlighter-rouge">auto_increment</code> primary key, also it was working fine for a few hours.</p>
+
+<h3 id="things-we-tried-to-solve-but-didnt-work-1">Things we tried to solve but didn’t work:</h3>
+<p>Nothing much tried with the latest dumps. We did this dump and restore many times, but every time it got failed.</p>
+
+<h3 id="workaround">Workaround:</h3>
+<p>Convert the MyISAM tables to Innodb on the master node, then take the dump file for the migration.</p>
+
+<h2 id="3-dont-include-the-views-in-your-dump-file">3. Don’t include the Views in your dump file:</h2>
+<p>The default dump file restore user in CloudSQL has very limited privilege, it doesn’t have the <code class="language-html highlighter-rouge">create view</code> permission. During the restore when it detects the create view command, then it’ll stop the process. And the other bad news is it’ll never log any single entry about this view in the stackdriver log. We had this situation, and we were not able to identify what was causing this issue, then we requested the GCP support team to share the internal logs which only available for them. There we got this error line information.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="n">ERROR</span> <span class="mi">1045</span> <span class="p">(</span><span class="mi">28000</span><span class="p">)</span> <span class="k">at</span> <span class="n">line</span> <span class="mi">71960</span><span class="p">:</span> <span class="k">Access</span> <span class="n">denied</span> <span class="k">for</span> <span class="k">user</span> <span class="s1">'cloudsqlimport'</span><span class="o">@</span><span class="s1">'localhost'</span> <span class="p">(</span><span class="k">using</span> <span class="n">password</span><span class="p">:</span> <span class="k">NO</span><span class="p">)</span></code></pre></figure>
+
+<p>When we extracted line 71960 from the dump file, we got to know that it is a view. Anyhow the GCP’s documentation says don’t include the view during the dump. So if you encountered to create a view or some with <code class="language-html highlighter-rouge">definer=</code> those line numbers will not bere in your stackdriver logs.</p>
+
+<p>If you had some strange experience with CloudSQL migration, please leave them in the comments.</p>
+:ET

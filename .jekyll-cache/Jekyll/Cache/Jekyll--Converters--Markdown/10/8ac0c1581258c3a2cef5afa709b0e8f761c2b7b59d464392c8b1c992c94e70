@@ -1,0 +1,2 @@
+I"<p>Athena is one of best services in AWS to build a Data Lake solutions and do analytics on flat files which are stored in the S3. In the backend its actually using presto clusters. Here Im gonna explain automatically create AWS Athena partitions for cloudtrail between two dates.</p>
+:ET

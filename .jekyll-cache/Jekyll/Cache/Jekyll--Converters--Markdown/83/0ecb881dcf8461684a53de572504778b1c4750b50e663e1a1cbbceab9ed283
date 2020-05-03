@@ -1,0 +1,2 @@
+I"î<p>In my previous blog post I have explained how to automatically create AWS Athena Partitions for cloudtrail logs between two dates. This post will help you to automate AWS Athena create partition on daily basis for cloudtrail logs.</p>
+:ET

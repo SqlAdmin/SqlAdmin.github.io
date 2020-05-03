@@ -1,0 +1,2 @@
+I"ž<p>Redshift kill all locking sessions on a particular table using a stored procedure. Itâ€™ll collect all locking sessions pid and kill them in one shot.</p>
+:ET

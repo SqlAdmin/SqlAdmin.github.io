@@ -1,0 +1,2 @@
+I"–<p>AWS Glue parquet out files in a custom size and set the number of output files. We can use groupFiles and repartition in Glue to achieve this.</p>
+:ET

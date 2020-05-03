@@ -1,0 +1,2 @@
+I"á<p>AWS Snapshots are inconsistent, Its not a good practice to use taking AMI to backup the databases. We faced PostgreSQL index corruption issue because of the instance launched from the AMI of another PostgreSQL server.</p>
+:ET

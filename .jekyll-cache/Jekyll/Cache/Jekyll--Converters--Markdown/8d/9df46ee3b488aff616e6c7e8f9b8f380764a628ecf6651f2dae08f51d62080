@@ -1,0 +1,2 @@
+I"Ó<p>Windows Domain Controller 2016 in AWS is unable to resolve both public and private DNS. On windows server 2012 its working fine. To fix this issue add DNS suffix and add AWS VPC DNS IP in DNS forwarders.</p>
+:ET

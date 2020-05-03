@@ -1,0 +1,2 @@
+I"è<p>Use this stored procedure to get the exact row count of all the tables in mysql. Get the table names using cursor and run select count.</p>
+:ET

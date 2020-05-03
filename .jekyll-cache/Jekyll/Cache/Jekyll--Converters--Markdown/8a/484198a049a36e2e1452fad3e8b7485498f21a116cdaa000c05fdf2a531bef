@@ -1,0 +1,2 @@
+I"ç<p>MySQL using binlog file and position for replication. For setting up GTID based replication we need to use master_auto_position is 1.</p>
+:ET

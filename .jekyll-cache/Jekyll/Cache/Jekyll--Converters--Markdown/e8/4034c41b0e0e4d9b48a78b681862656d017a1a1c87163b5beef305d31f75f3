@@ -1,0 +1,217 @@
+I"�q<p>Good news for the RedShift customers now we can <code class="language-html highlighter-rouge">GRANT</code> column-level permissions on the tables. It’s not only limited to tables, but we can also grant on views and materialized views as well. When the Lake formation was announced, this feature was a part of it. But unfortunately, we need to use Redshift Spectrum to achieve this. The wait is over now. Redshift natively supports the column level restrictions. Im experimenting and walk through this feature and test all the statements mentioned in the Redshift documentation.</p>
+
+<h2 id="import-a-sample-table">Import a sample table:</h2>
+<p>For our experiment, we need sample data. So I have download a <code class="language-html highlighter-rouge">.csv</code> file from <a href="https://mockaroo.com/">mockaroo</a> and then uploaded the CSV file into my S3 bucket.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">table</span> <span class="n">test_data</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="nb">INT</span><span class="p">,</span>
+    <span class="n">first_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+    <span class="n">last_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+    <span class="n">email</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+    <span class="n">gender</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+    <span class="n">ip_address</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+<span class="p">);</span>
+
+<span class="k">COPY</span> <span class="n">test_data</span>  <span class="k">from</span> <span class="s1">'s3://my-data-lake/mock_data.csv'</span> <span class="n">iam_role</span> <span class="s1">'arn:aws:iam::1111111111:role/Copying-S3to-RS'</span> <span class="n">CSV</span><span class="p">;</span></code></pre></figure>
+
+<p>I have executed the copy command for multiple times to make my table as some decent amount of rows.</p>
+
+<h2 id="notes-about-column-level-acl">Notes about column level ACL:</h2>
+
+<ul>
+  <li>You can control the column level access only for <code class="language-html highlighter-rouge">SELECT</code> and <code class="language-html highlighter-rouge">UPDATE</code>.</li>
+  <li>Once you assigned some column level restriction, then that user should specifically mention the column names in the query. <code class="language-html highlighter-rouge">Select *</code> will not work.</li>
+  <li>You can control the table, view and materialized views.</li>
+  <li>If you want to give both select and update to a user, then just use <code class="language-html highlighter-rouge">GRANT ALL (column names)</code> will give both access to those columns.</li>
+  <li>Table Owner and Superusers can grant the column ACL.</li>
+</ul>
+
+<h2 id="experiments">Experiments:</h2>
+<p>Before we start our experiment, we can create a user for this.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">user</span> <span class="n">rs_expriment</span> <span class="n">password</span> <span class="s1">'Mypass123'</span><span class="p">;</span></code></pre></figure>
+
+<h3 id="1-grant-select-only-access">#1 Grant select only access:</h3>
+<p>Let’s grant select access for a few columns and see how the user can access it in different ways.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">grant</span> <span class="k">select</span> <span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">rs_expriment</span><span class="p">;</span>
+
+<span class="k">set</span> <span class="k">session</span> <span class="k">authorization</span> <span class="n">rs_expriment</span><span class="p">;</span>
+<span class="k">SET</span>
+
+<span class="k">select</span> <span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span> <span class="k">from</span> <span class="n">test_data</span> <span class="k">limit</span> <span class="mi">10</span><span class="p">;</span>
+ <span class="n">id</span> <span class="o">|</span> <span class="n">first_name</span> <span class="o">|</span> <span class="n">last_name</span>
+<span class="c1">----+------------+-----------</span>
+  <span class="mi">1</span> <span class="o">|</span> <span class="n">Bernie</span>     <span class="o">|</span> <span class="n">Hull</span>
+  <span class="mi">3</span> <span class="o">|</span> <span class="n">Carmina</span>    <span class="o">|</span> <span class="n">Cahill</span>
+  <span class="mi">5</span> <span class="o">|</span> <span class="n">Leanora</span>    <span class="o">|</span> <span class="n">Boribal</span>
+  <span class="mi">7</span> <span class="o">|</span> <span class="n">Eal</span>        <span class="o">|</span> <span class="n">Crocetto</span>
+  <span class="mi">9</span> <span class="o">|</span> <span class="n">Gaylor</span>     <span class="o">|</span> <span class="n">Dugmore</span>
+ <span class="mi">11</span> <span class="o">|</span> <span class="n">Pren</span>       <span class="o">|</span> <span class="n">Stenhouse</span>
+ <span class="mi">13</span> <span class="o">|</span> <span class="n">Jonie</span>      <span class="o">|</span> <span class="n">Sloegrave</span>
+ <span class="mi">15</span> <span class="o">|</span> <span class="n">Heinrik</span>    <span class="o">|</span> <span class="n">Cremen</span>
+ <span class="mi">17</span> <span class="o">|</span> <span class="n">Lauri</span>      <span class="o">|</span> <span class="n">Fraser</span>
+ <span class="mi">19</span> <span class="o">|</span> <span class="n">Nicolina</span>   <span class="o">|</span> <span class="n">Edwards</span></code></pre></figure>
+
+<p>Lets query other column and all columns.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">select</span> <span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">,</span> <span class="n">email</span> <span class="k">from</span> <span class="n">test_data</span> <span class="k">limit</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="n">relation</span> <span class="n">test_data</span>
+
+<span class="k">select</span> <span class="o">*</span> <span class="k">from</span> <span class="n">test_data</span> <span class="k">limit</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="n">relation</span> <span class="n">test_data</span></code></pre></figure>
+
+<h3 id="2-grant-update-access">#2 Grant UPDATE access</h3>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">grant</span> <span class="k">update</span> <span class="p">(</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">rs_expriment</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">set</span> <span class="k">session</span> <span class="k">authorization</span> <span class="n">rs_expriment</span><span class="p">;</span>
+<span class="k">SET</span>
+
+<span class="k">update</span> <span class="n">test_data</span> <span class="k">set</span> <span class="n">first_name</span><span class="o">=</span><span class="s1">'test_name'</span>  <span class="k">where</span> <span class="n">first_name</span><span class="o">=</span><span class="s1">'Bernie'</span><span class="p">;</span>
+<span class="k">UPDATE</span> <span class="mi">13</span></code></pre></figure>
+
+<p>Now test with other columns.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">update</span> <span class="n">test_data</span> <span class="k">set</span> <span class="n">last_name</span><span class="o">=</span><span class="s1">'test_name'</span>  <span class="k">where</span> <span class="n">first_name</span><span class="o">=</span><span class="s1">'Bernie'</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="n">relation</span> <span class="n">test_data</span>
+
+<span class="k">delete</span> <span class="k">from</span> <span class="n">test_data</span> <span class="k">where</span> <span class="n">first_name</span><span class="o">=</span><span class="s1">'test_name'</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="n">relation</span> <span class="n">test_data</span></code></pre></figure>
+
+<h3 id="3-select--update-togehter">#3 select + update togehter</h3>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">update</span> <span class="n">test_data</span> <span class="k">set</span> <span class="n">first_name</span><span class="o">=</span><span class="n">last_name</span>  <span class="k">where</span> <span class="n">first_name</span><span class="o">=</span><span class="s1">'test_name'</span><span class="p">;</span>
+<span class="k">UPDATE</span> <span class="mi">13</span>
+
+<span class="k">update</span> <span class="n">test_data</span> <span class="k">set</span> <span class="n">first_name</span><span class="o">=</span><span class="n">email</span>  <span class="k">where</span> <span class="n">first_name</span><span class="o">=</span><span class="s1">'test_name'</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="n">relation</span> <span class="n">test_data</span></code></pre></figure>
+
+<h3 id="4-test-the-statements-from-the-redshift-doc">#4 Test the statements from the RedShift Doc</h3>
+<blockquote>
+  <p>If a user has a table-level privilege on a table, then granting the same privilege at the column level has no effect.</p>
+</blockquote>
+
+<p>Anyhow this clearly explains the logic. So we can skip this.</p>
+
+<blockquote>
+  <p>If a user has a table-level privilege on a table, then revoking the same privilege for one or more columns of the table returns an error. Instead, revoke the privilege at the table level.</p>
+</blockquote>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">user</span> <span class="n">table_full_select</span> <span class="n">password</span> <span class="s1">'MyPass123'</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">USER</span>
+
+<span class="k">grant</span> <span class="k">select</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">table_full_select</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">revoke</span> <span class="k">select</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">from</span> <span class="n">table_full_select</span><span class="p">;</span>
+
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">Cannot</span> <span class="k">revoke</span> <span class="k">SELECT</span> <span class="n">privilege</span> <span class="k">on</span> <span class="n">test_data</span><span class="p">.</span><span class="n">id</span> <span class="k">from</span> <span class="k">user</span> <span class="n">table_full_select</span> <span class="k">as</span> <span class="n">the</span> <span class="n">grantee</span> <span class="n">holds</span> <span class="n">this</span> <span class="n">privilege</span> <span class="k">at</span> <span class="n">the</span> <span class="n">relation</span> <span class="k">level</span><span class="p">.</span> <span class="k">Revoke</span> <span class="n">the</span> <span class="n">relation</span> <span class="k">level</span> <span class="n">privilege</span> <span class="k">instead</span><span class="p">.</span></code></pre></figure>
+
+<blockquote>
+  <p>If a user has a column-level privilege, then granting the same privilege at the table level returns an error.</p>
+</blockquote>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">user</span> <span class="n">column_select</span> <span class="n">password</span> <span class="s1">'MyPass123'</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">USER</span>
+
+<span class="k">grant</span> <span class="k">select</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">column_select</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">grant</span> <span class="k">select</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">column_select</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="k">No</span> <span class="k">privileges</span> <span class="n">were</span> <span class="k">granted</span><span class="p">.</span> <span class="k">Some</span> <span class="n">grantees</span> <span class="k">hold</span> <span class="k">column</span> <span class="k">privileges</span> <span class="k">on</span> <span class="n">relation</span> <span class="n">test_data</span><span class="p">.</span> <span class="k">Check</span> <span class="k">for</span> <span class="k">and</span> <span class="k">revoke</span> <span class="k">column</span> <span class="k">level</span> <span class="k">privileges</span> <span class="k">for</span> <span class="n">these</span> <span class="n">grantees</span> <span class="k">on</span> <span class="k">all</span> <span class="n">relations</span> <span class="n">referenced</span> <span class="k">in</span> <span class="n">this</span> <span class="k">Grant</span> <span class="k">statement</span> <span class="k">before</span> <span class="n">granting</span> <span class="k">table</span> <span class="k">privileges</span> <span class="k">to</span> <span class="n">them</span><span class="p">.</span></code></pre></figure>
+
+<blockquote>
+  <p>If a user has a column-level privilege, then revoking the same privilege at the table level revokes both column and table privileges for all columns on the table.</p>
+</blockquote>
+
+<p>Note: If you want to revoke the select/update from a column level privilege user, then if you use just <code class="language-html highlighter-rouge">revoke select on</code> or <code class="language-html highlighter-rouge">revoke update on</code> will revoke the access. You can use this syntax for revoking access on table level/column level privilege users.</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">user</span> <span class="n">column_select</span> <span class="n">password</span> <span class="s1">'MyPass123'</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">USER</span>
+
+<span class="k">grant</span> <span class="k">select</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">column_select</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">revoke</span> <span class="k">select</span> <span class="k">on</span> <span class="k">table</span> <span class="n">test_data</span> <span class="k">from</span> <span class="n">column_select</span><span class="p">;</span>
+<span class="k">REVOKE</span></code></pre></figure>
+
+<blockquote>
+  <p>You can’t grant column-level privileges on late-binding views.</p>
+</blockquote>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">view</span> <span class="n">v_test_data</span> <span class="k">as</span> <span class="p">(</span><span class="k">select</span> <span class="o">*</span> <span class="k">from</span> <span class="k">public</span><span class="p">.</span><span class="n">test_data</span><span class="p">)</span><span class="k">WITH</span> <span class="k">NO</span> <span class="k">SCHEMA</span> <span class="n">BINDING</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">VIEW</span></code></pre></figure>
+
+<p>Try the grant table level access:</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">grant</span> <span class="k">select</span> <span class="k">on</span> <span class="n">v_test_data</span> <span class="k">to</span> <span class="n">column_select</span><span class="p">;</span>
+<span class="k">GRANT</span></code></pre></figure>
+
+<p>Try the same on late-binding view:</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">grant</span> <span class="k">select</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">v_test_data</span> <span class="k">to</span> <span class="n">column_select</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="k">column</span> <span class="nv">"id"</span> <span class="k">of</span> <span class="n">relation</span> <span class="nv">"v_test_data"</span> <span class="n">does</span> <span class="k">not</span> <span class="n">exist</span><span class="p">.</span></code></pre></figure>
+
+<blockquote>
+  <p>You must have table-level SELECT privilege on the base tables to create a materialized view. Even if you have column-level privileges on specific columns, you can’t create a materialized view on only those columns.</p>
+</blockquote>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">user</span> <span class="n">mv_user</span> <span class="n">password</span> <span class="s1">'MyPass123'</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">USER</span>
+
+<span class="k">grant</span> <span class="k">select</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">test_data</span> <span class="k">to</span> <span class="n">mv_user</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">create</span> <span class="k">schema</span> <span class="n">acl</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">SCHEMA</span>
+
+<span class="k">grant</span> <span class="k">all</span> <span class="k">on</span> <span class="k">schema</span> <span class="n">acl</span> <span class="k">to</span> <span class="n">mv_user</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">set</span> <span class="k">session</span> <span class="k">authorization</span> <span class="n">mv_user</span><span class="p">;</span>
+<span class="k">SET</span>
+
+<span class="k">CREATE</span> <span class="n">MATERIALIZED</span> <span class="k">VIEW</span> <span class="n">acl</span><span class="p">.</span><span class="n">mv_testdata</span> <span class="k">as</span> <span class="p">(</span><span class="k">select</span> <span class="n">id</span><span class="p">,</span> <span class="n">first_name</span> <span class="k">from</span> <span class="k">public</span><span class="p">.</span><span class="n">test_data</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="n">MATERIALIZED</span> <span class="k">VIEW</span>
+
+<span class="k">select</span> <span class="o">*</span> <span class="k">from</span> <span class="n">acl</span><span class="p">.</span><span class="n">mv_testdata</span> <span class="k">limit</span> <span class="mi">2</span><span class="p">;</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="n">materialized</span> <span class="k">view</span> <span class="n">base</span> <span class="n">relation</span> <span class="n">test_data</span><span class="p">.</span></code></pre></figure>
+
+<h3 id="oh-ho-what-is-this">oh ho!!! What is this?</h3>
+<p>Because by default you have full access on public schema for all the users. Thats why its created.</p>
+
+<h3 id="update">Update:</h3>
+<p>Thanks AWS Support team for clarifying this. 
+Lets see what happen if have your base table on the different schema?</p>
+
+<figure class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="k">create</span> <span class="k">schema</span> <span class="n">bhuvi</span><span class="p">;</span>
+<span class="k">CREATE</span>
+
+<span class="k">create</span> <span class="k">table</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="p">(</span>
+	<span class="n">id</span> <span class="nb">INT</span><span class="p">,</span>
+	<span class="n">first_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+	<span class="n">last_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+	<span class="n">email</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+	<span class="n">gender</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span>
+	<span class="n">ip_address</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+<span class="p">);</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">gender</span><span class="p">,</span> <span class="n">ip_address</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Arden'</span><span class="p">,</span> <span class="s1">'Connichie'</span><span class="p">,</span> <span class="s1">'aconnichie0@nifty.com'</span><span class="p">,</span> <span class="s1">'Female'</span><span class="p">,</span> <span class="s1">'66.179.130.47'</span><span class="p">);</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">gender</span><span class="p">,</span> <span class="n">ip_address</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Elsie'</span><span class="p">,</span> <span class="s1">'Fryatt'</span><span class="p">,</span> <span class="s1">'efryatt1@jugem.jp'</span><span class="p">,</span> <span class="s1">'Female'</span><span class="p">,</span> <span class="s1">'91.228.196.151'</span><span class="p">);</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">gender</span><span class="p">,</span> <span class="n">ip_address</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Corette'</span><span class="p">,</span> <span class="s1">'Tomasz'</span><span class="p">,</span> <span class="s1">'ctomasz2@miitbeian.gov.cn'</span><span class="p">,</span> <span class="s1">'Female'</span><span class="p">,</span> <span class="s1">'134.169.27.141'</span><span class="p">);</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">gender</span><span class="p">,</span> <span class="n">ip_address</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s1">'Margarita'</span><span class="p">,</span> <span class="s1">'Moulden'</span><span class="p">,</span> <span class="s1">'mmoulden3@google.com'</span><span class="p">,</span> <span class="s1">'Female'</span><span class="p">,</span> <span class="s1">'248.63.226.96'</span><span class="p">);</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">first_name</span><span class="p">,</span> <span class="n">last_name</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">gender</span><span class="p">,</span> <span class="n">ip_address</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s1">'Eran'</span><span class="p">,</span> <span class="s1">'McCoveney'</span><span class="p">,</span> <span class="s1">'emccoveney4@redcross.org'</span><span class="p">,</span> <span class="s1">'Female'</span><span class="p">,</span> <span class="s1">'19.137.118.110'</span><span class="p">);</span>
+
+<span class="k">grant</span> <span class="k">select</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="n">first_name</span><span class="p">)</span> <span class="k">on</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span> <span class="k">to</span> <span class="n">mv_user</span><span class="p">;</span>
+<span class="k">GRANT</span>
+
+<span class="k">set</span> <span class="k">session</span> <span class="k">authorization</span> <span class="n">mv_user</span><span class="p">;</span>
+<span class="k">SET</span>
+
+<span class="k">CREATE</span> <span class="n">MATERIALIZED</span> <span class="k">VIEW</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">mv_testdata</span> <span class="k">as</span> <span class="p">(</span><span class="k">select</span> <span class="n">id</span><span class="p">,</span> <span class="n">first_name</span> <span class="k">from</span> <span class="n">bhuvi</span><span class="p">.</span><span class="n">test_data</span><span class="p">);</span>
+<span class="n">ERROR</span><span class="p">:</span>  <span class="n">permission</span> <span class="n">denied</span> <span class="k">for</span> <span class="k">schema</span> <span class="n">bhuvi</span></code></pre></figure>
+
+<h2 id="conclusion">Conclusion:</h2>
+<p>Its not a big deal to work with column level ACL. But its worth to test every small feature. So you have better visibility about the feature and find the bugs like what we found above. I’ll update this blog once the AWS team confirms this as a bug or not.</p>
+:ET
