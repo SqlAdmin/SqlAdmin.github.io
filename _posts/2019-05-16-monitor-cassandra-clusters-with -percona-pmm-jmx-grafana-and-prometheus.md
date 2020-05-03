@@ -30,7 +30,7 @@ You don't need to change anything from your Cassandra's setting or cassandra-env
 mkdir /opt/cassandra_exporter
 cd  /opt/cassandra_exporter
 wget https://github.com/criteo/cassandra_exporter/releases/download/2.2.1/cassandra_exporter-2.2.1-all.jar
-mv cassandra_exporter-2.2.1-all.jar  cassandra_exporter.jar{% endraw %} {% endhighlight %}
+mv cassandra_exporter-2.2.1-all.jar  cassandra_exporter.jar
 ```
 ### Create config file
 
