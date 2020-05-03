@@ -1,16 +1,27 @@
 ---
-title: Tag Archive
 layout: default
-permalink: /tags
+title: Tags
 ---
-<div class="post">
-<h1>Tag: {{ page.tag }}</h1>
+<section class="posts">
 <ul>
-{% for post in site.tags[page.tag] %}
-  <li><a href="{{ post.url }}">{{ post.title }}</a> ({{ post.date | date_to_string }})<br>
-    {{ post.description }}
-  </li>
-{% endfor %}
+
+    {% for tag in site.tags %}
+    <a href="#{{ tag[0] | slugify }}" class="post-tag">{{ tag[0] }}</a>
+    {% endfor %}
+
+  <hr/>
+    {% for tag in site.tags %}
+    <h2 id="{{ tag[0] | slugify }}">{{ tag[0] }}</h2>
+    <ul class="tags-expo-posts">
+      {% for post in tag[1] %}
+        <a class="post-title" href="{{ site.baseurl }}{{ post.url }}">
+      <li>
+        {{ post.title }}
+      <small class="post-date">{{ post.date | date_to_string }}</small>
+      </li>
+      </a>
+      {% endfor %}
+    </ul>
+    {% endfor %}
 </ul>
-</div>
-<hr>
+</section>
