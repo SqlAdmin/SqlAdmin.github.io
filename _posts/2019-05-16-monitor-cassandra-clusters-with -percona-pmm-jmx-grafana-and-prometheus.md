@@ -26,12 +26,14 @@ You don't need to change anything from your Cassandra's setting or cassandra-env
 
 ### Download the exporter:
 
-{% highlight html linenos %} {% raw %}mkdir /opt/cassandra_exporter
+```sh
+mkdir /opt/cassandra_exporter
 cd  /opt/cassandra_exporter
 wget https://github.com/criteo/cassandra_exporter/releases/download/2.2.1/cassandra_exporter-2.2.1-all.jar
 mv cassandra_exporter-2.2.1-all.jar  cassandra_exporter.jar{% endraw %} {% endhighlight %}
-
+```
 ### Create config file
+
 {% highlight shell %}
 vi config.yml
 host: localhost:7199
